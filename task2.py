@@ -127,27 +127,6 @@ class Parser:
         else:
             self.error()
 
-    def term(self):
-        """Парсер для 'term' правил граматики. У нашому випадку - це цілі числа."""
-        token = self.current_token
-        self.eat(TokenType.INTEGER)
-        return Num(token)
-
-    def expr(self):
-        """Парсер для арифметичних виразів."""
-        node = self.term()
-
-        while self.current_token.type in (TokenType.PLUS, TokenType.MINUS):
-            token = self.current_token
-            if token.type == TokenType.PLUS:
-                self.eat(TokenType.PLUS)
-            elif token.type == TokenType.MINUS:
-                self.eat(TokenType.MINUS)
-
-            node = BinOp(left=node, op=token, right=self.term())
-
-        return node
-
     def factor(self):
         token = self.current_token
         if token.type == TokenType.INTEGER:
@@ -158,6 +137,29 @@ class Parser:
             node = self.expr()
             self.eat(TokenType.RPAREN)
             return node
+
+    def term(self):
+        node = self.factor()
+
+        while self.current_token.type in (TokenType.MUL, TokenType.DIV):
+            token = self.current_token
+            self.eat(token.type)
+            node = BinOp(left=node, op=token, right=self.factor())
+
+        return node
+
+    def expr(self):
+        """Парсер для арифметичних виразів."""
+        node = self.term()
+
+        while self.current_token.type in (TokenType.PLUS, TokenType.MINUS):
+            token = self.current_token
+            self.eat(token.type) 
+            node = BinOp(left=node, op=token, right=self.term())
+
+        return node
+
+    
 
 
 def print_ast(node, level=0):
@@ -184,6 +186,10 @@ class Interpreter:
             return self.visit(node.left) + self.visit(node.right)
         elif node.op.type == TokenType.MINUS:
             return self.visit(node.left) - self.visit(node.right)
+        elif node.op.type == TokenType.MUL:
+            return self.visit(node.left) * self.visit(node.right)
+        elif node.op.type == TokenType.DIV:
+            return self.visit(node.left) / self.visit(node.right)
 
     def visit_Num(self, node):
         return node.value
